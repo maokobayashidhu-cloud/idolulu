@@ -1,0 +1,733 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>選抜予想メーカー</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f7f1fb;
+        --ink: #2a2232;
+        --accent: #b48ad9;
+        --accent-2: #f3a6c8;
+        --paper: #fff9ff;
+        --shadow: 0 18px 60px rgba(0, 0, 0, 0.12);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+        color: var(--ink);
+        background: radial-gradient(circle at top left, #fff4ff 0%, #f4edff 45%, #f7f1fb 100%);
+      }
+      .app {
+        min-height: 100vh;
+        display: flex;
+        align-items: stretch;
+      }
+      .side {
+        width: 320px;
+        padding: 40px 28px;
+        background: linear-gradient(180deg, #b48ad9 0%, #8f6cc0 100%);
+        color: #fff5ff;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+      .side h1 {
+        margin: 0;
+        font-size: 28px;
+        letter-spacing: 0.08em;
+      }
+      .side p {
+        margin: 0;
+        line-height: 1.7;
+        font-size: 14px;
+      }
+      .side .badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(249, 245, 240, 0.6);
+        font-size: 12px;
+        letter-spacing: 0.12em;
+      }
+      .main {
+        flex: 1;
+        padding: 40px 48px 64px;
+      }
+      .card {
+        background: var(--paper);
+        border-radius: 24px;
+        box-shadow: var(--shadow);
+        padding: 28px 32px 32px;
+      }
+      .screen {
+        display: none;
+      }
+      .screen.active {
+        display: block;
+      }
+      .form-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-items: center;
+      }
+      .label {
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+      }
+      .name-input {
+        width: min(420px, 100%);
+        padding: 14px 16px;
+        border: 2px solid #1c1b19;
+        border-radius: 12px;
+        font-size: 18px;
+        background: #fff;
+      }
+      .btn {
+        border: none;
+        background: var(--accent);
+        color: #fff;
+        padding: 12px 20px;
+        border-radius: 999px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+      .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 30px rgba(180, 138, 217, 0.35);
+      }
+      .btn.secondary {
+        background: #3a2c45;
+      }
+      .headline {
+        font-size: 24px;
+        margin: 0 0 16px;
+      }
+      .grid {
+        display: grid;
+        gap: 16px;
+      }
+      .picker {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 12px;
+      }
+      .member {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 10px;
+        border: 1px dashed #cfc7bc;
+        text-align: center;
+        cursor: grab;
+        user-select: none;
+        transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+      }
+      .member:active {
+        cursor: grabbing;
+      }
+      .member.selected {
+        border-color: var(--accent-2);
+        box-shadow: 0 10px 24px rgba(231, 111, 81, 0.25);
+        transform: translateY(-2px);
+      }
+      .member.disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+        filter: grayscale(40%);
+      }
+      .avatar {
+        width: 100%;
+        padding-top: 100%;
+        border-radius: 12px;
+        position: relative;
+        overflow: hidden;
+        background: #f0e6f6;
+      }
+      .avatar img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .avatar span {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        font-size: 18px;
+        font-weight: 700;
+        color: transparent;
+        text-shadow: none;
+        pointer-events: none;
+      }
+      .formation-controls {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 12px;
+      }
+      .formation-controls label {
+        font-size: 12px;
+        letter-spacing: 0.12em;
+      }
+      select {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid #bdb3a6;
+        background: #fff;
+        font-size: 14px;
+      }
+      .stage {
+        background: #f3ecf9;
+        padding: 20px;
+        border-radius: 18px;
+        display: grid;
+        gap: 12px;
+      }
+      .row {
+        display: grid;
+        gap: 10px;
+        grid-auto-flow: column;
+        grid-auto-columns: 1fr;
+      }
+      .slot {
+        background: #ffffff;
+        border-radius: 14px;
+        min-height: 86px;
+        border: 2px dashed #d7c8ea;
+        display: grid;
+        place-items: center;
+        transition: border-color 0.2s ease, background 0.2s ease;
+        position: relative;
+        cursor: pointer;
+      }
+      .slot.dragover {
+        border-color: var(--accent-2);
+        background: #ffeef6;
+      }
+      .slot .remove {
+        position: absolute;
+        top: 6px;
+        right: 8px;
+        border: none;
+        background: none;
+        font-size: 14px;
+        cursor: pointer;
+      }
+      .slot .filled {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .slot .filled .photo {
+        width: 100%;
+        height: 100%;
+        border-radius: 12px;
+        object-fit: cover;
+      }
+      .slot .filled .thumb {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #caa7ea, #f3a6c8);
+        display: grid;
+        place-items: center;
+        color: #fff;
+        font-weight: 700;
+      }
+      .share {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+      }
+      .share-note {
+        font-size: 12px;
+        color: #6b6256;
+        margin-top: 6px;
+      }
+      .share textarea {
+        flex: 1 1 280px;
+        min-height: 80px;
+        padding: 12px;
+        border-radius: 12px;
+        border: 1px solid #bdb3a6;
+        background: #fff;
+        font-size: 13px;
+      }
+      .mobile-hint {
+        display: none;
+        font-size: 12px;
+        margin-top: 8px;
+        color: #6b6256;
+      }
+      @media (max-width: 920px) {
+        .app {
+          flex-direction: column;
+        }
+        .side {
+          width: 100%;
+          border-radius: 0 0 24px 24px;
+        }
+        .main {
+          padding: 28px 20px 48px;
+        }
+        .card {
+          padding: 22px 20px 26px;
+        }
+        .row {
+          grid-auto-flow: row;
+          grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+        }
+        .slot {
+          min-height: 76px;
+        }
+        .mobile-hint {
+          display: block;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="side">
+        <span class="badge">SENBATSU MAKER</span>
+        <h1>選抜予想メーカー</h1>
+        <p>
+          好きなメンバーをドラッグして、自分だけのフォーメーションを作ろう。
+          できたらXでシェア。
+        </p>
+      </aside>
+      <main class="main">
+        <section class="card screen active" id="screen-name">
+          <h2 class="headline">この四角い枠に名前が入力できるようにする</h2>
+          <div class="form-row">
+            <input class="name-input" id="producer-name" placeholder="例：太郎" />
+            <button class="btn" id="to-stage">次へ</button>
+          </div>
+          <div class="mobile-hint">スマホは「メンバーを選んで枠をタップ」で配置できます。</div>
+        </section>
+
+        <section class="card screen" id="screen-stage">
+          <h2 class="headline" id="title-line">（入力した名前）プロデューサーが考える選抜予想</h2>
+
+          <div class="grid" style="margin-top: 16px;">
+            <div>
+              <p class="label">メンバー一覧</p>
+              <div class="picker" id="member-list"></div>
+              <div class="mobile-hint">メンバーをタップして選択 → 枠をタップで配置</div>
+            </div>
+
+            <div>
+              <p class="label">フォーメーション人数</p>
+              <div class="formation-controls">
+                <label>
+                  1列目
+                  <select id="row1"></select>
+                </label>
+                <label>
+                  2列目
+                  <select id="row2"></select>
+                </label>
+                <label>
+                  3列目
+                  <select id="row3"></select>
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <p class="label">フォーメーション</p>
+              <div class="stage" id="stage"></div>
+            </div>
+
+            <div>
+              <p class="label">シェア</p>
+              <div class="share">
+                <button class="btn secondary" id="share-x">Xでシェア</button>
+                <textarea id="share-text" readonly></textarea>
+              </div>
+              <div class="share-note">画像は自動保存後、Xの投稿画面が開きます。</div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const members = [
+        { name: "愛宕心響", img: "./image/aida.png" },
+        { name: "五百城茉央", img: "./image/ioki.png" },
+        { name: "池田瑛紗", img: "./image/ikeda.png" },
+        { name: "一ノ瀬美空", img: "./image/ichinose.png" },
+        { name: "伊藤理々杏", img: "./image/ito.png" },
+        { name: "井上和", img: "./image/inoue.png" },
+        { name: "岩本蓮加", img: "./image/iwamoto.png" },
+        { name: "梅澤美波", img: "./image/umezawa.png" },
+        { name: "遠藤さくら", img: "./image/endo.png" },
+        { name: "大越ひなの", img: "./image/ookoshi.png" },
+        { name: "岡本姫奈", img: "./image/okamoto.png" },
+        { name: "小川彩", img: "./image/ogawa.png" },
+        { name: "奥田いろは", img: "./image/okuda.png" },
+        { name: "小津玲奈", img: "./image/ozu.png" },
+        { name: "海邉朱莉", img: "./image/kaibe.png" },
+        { name: "賀喜遥香", img: "./image/kaki.png" },
+        { name: "金川紗耶", img: "./image/kanagawa.png" },
+        { name: "川﨑桜", img: "./image/kawasaki.png" },
+        { name: "川端晃菜", img: "./image/kawabata.png" },
+        { name: "黒見明香", img: "./image/kuromi.png" },
+        { name: "佐藤璃果", img: "./image/sato.png" },
+        { name: "柴田柚菜", img: "./image/shibata.png" },
+        { name: "菅原咲月", img: "./image/sugawara.png" },
+        { name: "鈴木佑捺", img: "./image/suzuki.png" },
+        { name: "瀬戸口心月", img: "./image/setogushi.png" },
+        { name: "田村真佑", img: "./image/tamura.png" },
+        { name: "筒井あやめ", img: "./image/tutui.png" },
+        { name: "冨里奈央", img: "./image/tomisato.png" },
+        { name: "長嶋凛桜", img: "./image/nagashima.png" },
+        { name: "中西アルノ", img: "./image/nakanishi.png" },
+        { name: "林瑠奈", img: "./image/hayashi.png" },
+        { name: "増田三莉音", img: "./image/masuda.png" },
+        { name: "森平麗心", img: "./image/morihira.png" },
+        { name: "矢田萌華", img: "./image/yada.png" },
+        { name: "弓木奈於", img: "./image/yumiki.png" },
+        { name: "吉田綾乃クリスティー", img: "./image/yoshida.png" },
+      ];
+
+      const memberMap = new Map(members.map((m) => [m.name, m]));
+
+      const screenName = document.getElementById("screen-name");
+      const screenStage = document.getElementById("screen-stage");
+      const titleLine = document.getElementById("title-line");
+      const nameInput = document.getElementById("producer-name");
+      const toStageBtn = document.getElementById("to-stage");
+      const memberList = document.getElementById("member-list");
+      const row1 = document.getElementById("row1");
+      const row2 = document.getElementById("row2");
+      const row3 = document.getElementById("row3");
+      const stage = document.getElementById("stage");
+      const shareText = document.getElementById("share-text");
+      const shareX = document.getElementById("share-x");
+
+      const state = {
+        producer: "",
+        formation: [3, 4, 4],
+        slots: {},
+        selectedMember: "",
+      };
+
+      const fillSelect = (select, value) => {
+        select.innerHTML = "";
+        for (let i = 1; i <= 8; i += 1) {
+          const option = document.createElement("option");
+          option.value = String(i);
+          option.textContent = String(i);
+          if (i === value) option.selected = true;
+          select.appendChild(option);
+        }
+      };
+
+      const renderMembers = () => {
+        memberList.innerHTML = "";
+        members.forEach((member, index) => {
+          const item = document.createElement("div");
+          item.className = "member";
+          item.draggable = true;
+          item.dataset.member = member.name;
+          item.dataset.id = String(index);
+          item.innerHTML = `
+            <div class="avatar">
+              <img src="${member.img}" alt="${member.name}" loading="lazy" />
+              <span>${member.name}</span>
+            </div>
+            <div style="margin-top: 8px; font-size: 12px;">${member.name}</div>
+          `;
+          item.addEventListener("dragstart", (event) => {
+            const used = Object.values(state.slots).includes(member.name);
+            if (used) {
+              event.preventDefault();
+              return;
+            }
+            event.dataTransfer.setData("text/plain", member.name);
+          });
+          item.addEventListener("click", () => {
+            const used = Object.values(state.slots).includes(member.name);
+            if (used) return;
+            state.selectedMember = member.name;
+            updateSelectedMember();
+          });
+          memberList.appendChild(item);
+        });
+        updateSelectedMember();
+      };
+
+      const getSlotKey = (rowIndex, slotIndex) => `${rowIndex}-${slotIndex}`;
+
+      const clearSlot = (key) => {
+        delete state.slots[key];
+        renderStage();
+      };
+
+      const renderStage = () => {
+        stage.innerHTML = "";
+        const displayOrder = [2, 1, 0];
+        displayOrder.forEach((rowIndex) => {
+          const count = state.formation[rowIndex];
+          const row = document.createElement("div");
+          row.className = "row";
+          for (let i = 0; i < count; i += 1) {
+            const key = getSlotKey(rowIndex, i);
+            const slot = document.createElement("div");
+            slot.className = "slot";
+            slot.dataset.key = key;
+            slot.dataset.row = String(rowIndex);
+            slot.dataset.index = String(i);
+
+            const filled = state.slots[key];
+            if (filled) {
+              slot.innerHTML = `
+                <button class="remove" title="削除">×</button>
+                <div class="filled">
+                  <img class="photo" src="${filled.img}" alt="${filled.name}" />
+                </div>
+              `;
+              slot.querySelector(".remove").addEventListener("click", () => clearSlot(key));
+            } else {
+              slot.textContent = "Drop";
+            }
+
+            slot.addEventListener("dragover", (event) => {
+              event.preventDefault();
+              slot.classList.add("dragover");
+            });
+            slot.addEventListener("dragleave", () => slot.classList.remove("dragover"));
+            slot.addEventListener("drop", (event) => {
+              event.preventDefault();
+              slot.classList.remove("dragover");
+              const memberName = event.dataTransfer.getData("text/plain");
+              const member = memberMap.get(memberName);
+              if (member) {
+                if (Object.values(state.slots).some((m) => m.name === member.name)) return;
+                const previous = state.slots[key];
+                state.slots[key] = member;
+                if (previous && previous !== member) {
+                  // previous member becomes available again
+                }
+                state.selectedMember = "";
+                renderStage();
+              }
+            });
+            slot.addEventListener("click", () => {
+              if (state.selectedMember) {
+                if (Object.values(state.slots).some((m) => m.name === state.selectedMember)) return;
+                const member = memberMap.get(state.selectedMember);
+                if (!member) return;
+                const previous = state.slots[key];
+                state.slots[key] = member;
+                if (previous && previous !== state.selectedMember) {
+                  // previous member becomes available again
+                }
+                state.selectedMember = "";
+                renderStage();
+              }
+            });
+            row.appendChild(slot);
+          }
+          stage.appendChild(row);
+        });
+        updateShareText();
+        updateSelectedMember();
+      };
+
+      const updateSelectedMember = () => {
+        const items = memberList.querySelectorAll(".member");
+        const used = new Set(Object.values(state.slots).map((m) => m.name));
+        items.forEach((item) => {
+          const name = item.dataset.member;
+          if (used.has(name)) {
+            item.classList.add("disabled");
+            item.setAttribute("draggable", "false");
+          } else {
+            item.classList.remove("disabled");
+            item.setAttribute("draggable", "true");
+          }
+          if (!used.has(name) && name === state.selectedMember) {
+            item.classList.add("selected");
+          } else {
+            item.classList.remove("selected");
+          }
+        });
+      };
+
+      const updateShareText = () => {
+        const lines = [
+          `${state.producer}プロデューサーが考える選抜予想`,
+          `1列目: ${formatRow(0)}`,
+          `2列目: ${formatRow(1)}`,
+          `3列目: ${formatRow(2)}`,
+        ];
+        shareText.value = lines.join("\n");
+      };
+
+      const formatRow = (rowIndex) => {
+        const count = state.formation[rowIndex];
+        const names = [];
+        for (let i = 0; i < count; i += 1) {
+          const key = getSlotKey(rowIndex, i);
+          const member = state.slots[key];
+          names.push(member ? member.name : "_ _");
+        }
+        return names.join(" / ");
+      };
+
+      const updateFormation = () => {
+        state.formation = [Number(row1.value), Number(row2.value), Number(row3.value)];
+        const allowed = new Set();
+        state.formation.forEach((count, rowIndex) => {
+          for (let i = 0; i < count; i += 1) {
+            allowed.add(getSlotKey(rowIndex, i));
+          }
+        });
+        Object.keys(state.slots).forEach((key) => {
+          if (!allowed.has(key)) delete state.slots[key];
+        });
+        renderStage();
+      };
+
+      const buildShareImage = async () => {
+        const canvas = document.createElement("canvas");
+        const width = 1200;
+        const height = 800;
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return null;
+
+        ctx.fillStyle = "#f7f1fb";
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.fillStyle = "#2a2232";
+        ctx.font = "bold 36px 'Noto Serif JP', serif";
+        ctx.fillText(`${state.producer}プロデューサーが考える選抜予想`, 60, 80);
+
+        ctx.fillStyle = "#8f6cc0";
+        ctx.font = "600 24px 'Noto Serif JP', serif";
+        ctx.fillText(`フォーメーション ${state.formation[0]}-${state.formation[1]}-${state.formation[2]}`, 60, 125);
+
+        const padX = 60;
+        const padY = 170;
+        const stageW = width - padX * 2;
+        const stageH = height - padY - 60;
+        ctx.fillStyle = "#f3ecf9";
+        ctx.fillRect(padX, padY, stageW, stageH);
+
+        const rowOrder = [2, 1, 0];
+        const rowGap = 24;
+        const slotGap = 16;
+        const rowCount = rowOrder.length;
+        const rowHeight = (stageH - rowGap * (rowCount - 1)) / rowCount;
+
+        const loadImage = (src) =>
+          new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = () => resolve(null);
+            img.src = src;
+          });
+
+        for (let r = 0; r < rowOrder.length; r += 1) {
+          const rowIndex = rowOrder[r];
+          const count = state.formation[rowIndex];
+          const slotWidth = (stageW - slotGap * (count - 1)) / count;
+          const y = padY + r * (rowHeight + rowGap);
+
+          for (let i = 0; i < count; i += 1) {
+            const x = padX + i * (slotWidth + slotGap);
+            ctx.fillStyle = "#ffffff";
+            ctx.strokeStyle = "#d7c8ea";
+            ctx.lineWidth = 4;
+            ctx.fillRect(x, y, slotWidth, rowHeight);
+            ctx.strokeRect(x, y, slotWidth, rowHeight);
+
+            const key = getSlotKey(rowIndex, i);
+            const member = state.slots[key];
+            if (member) {
+              const img = await loadImage(member.img);
+              if (img) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.rect(x, y, slotWidth, rowHeight);
+                ctx.clip();
+                ctx.drawImage(img, x, y, slotWidth, rowHeight);
+                ctx.restore();
+              }
+            }
+          }
+        }
+
+        return canvas;
+      };
+
+      const downloadCanvas = (canvas) => {
+        const link = document.createElement("a");
+        link.download = "senbatsu.png";
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      };
+
+
+      toStageBtn.addEventListener("click", () => {
+        const name = nameInput.value.trim();
+        if (!name) return;
+        state.producer = name;
+        titleLine.textContent = `${name}プロデューサーが考える選抜予想`;
+        screenName.classList.remove("active");
+        screenStage.classList.add("active");
+        updateShareText();
+      });
+
+      shareX.addEventListener("click", async () => {
+        const text = shareText.value;
+        const canvas = await buildShareImage();
+        if (canvas) {
+          downloadCanvas(canvas);
+        }
+        if (navigator.share) {
+          try {
+            await navigator.share({ text });
+            return;
+          } catch (err) {
+            // fall through to X intent
+          }
+        }
+        const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+        window.open(url, "_blank", "noopener,noreferrer");
+      });
+
+
+      [row1, row2, row3].forEach((select) => {
+        select.addEventListener("change", updateFormation);
+      });
+
+      fillSelect(row1, state.formation[0]);
+      fillSelect(row2, state.formation[1]);
+      fillSelect(row3, state.formation[2]);
+      renderMembers();
+      renderStage();
+    </script>
+  </body>
+</html>
